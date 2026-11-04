@@ -405,6 +405,15 @@ button.secondary { background: transparent; color: var(--muted); border: 1px sol
   border-radius: 999px;
   font-weight: 700;
   color: var(--warn);
+  transition: color 0.2s ease;
+}
+.countdown-urgent {
+  color: var(--danger);
+  animation: countdown-pulse 0.5s ease-in-out infinite;
+}
+@keyframes countdown-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
 }
 
 .suspect-list {
@@ -746,6 +755,67 @@ button.secondary { background: transparent; color: var(--muted); border: 1px sol
   transition: left 0.5s cubic-bezier(0.34, 1.2, 0.64, 1), top 0.5s cubic-bezier(0.34, 1.2, 0.64, 1);
 }
 .sl-token .arena-char { width: 100%; height: 100%; }
+
+/* Thief & Police: noir interrogation scene */
+.noir-scene {
+  background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.12), transparent 55%), #15131a;
+  border: 1px solid #2d2a33;
+  border-radius: 14px;
+  padding: 18px;
+}
+
+/* Spyfall: travel ticket card */
+.ticket-card.role-card {
+  background: repeating-linear-gradient(135deg, #10121a, #10121a 10px, #171a24 10px, #171a24 20px);
+  border: 2px dashed var(--accent-2);
+}
+
+/* 20 Questions: quiz show stage */
+.quiz-stage {
+  background: radial-gradient(circle at 50% 10%, rgba(78, 161, 255, 0.18), transparent 60%), linear-gradient(180deg, #0e1a2b, #0a1420);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+/* Mafia: village day/night scene */
+.village-scene {
+  border-radius: 14px;
+  padding: 16px 18px;
+  transition: background 0.4s ease;
+}
+.village-night {
+  background:
+    radial-gradient(circle at 85% 15%, rgba(255, 255, 230, 0.5) 0%, rgba(255, 255, 230, 0.15) 8%, transparent 9%),
+    linear-gradient(180deg, #0b1026 0%, #141b3a 60%, #1d2444 100%);
+}
+.village-day {
+  background:
+    radial-gradient(circle at 15% 15%, rgba(255, 230, 150, 0.4) 0%, rgba(255, 230, 150, 0.1) 10%, transparent 11%),
+    linear-gradient(180deg, #4a90c2 0%, #7fb8d8 60%, #a8d0c8 100%);
+}
+.village-day p, .village-day strong { color: #10121a; }
+.village-day .countdown { color: #5a3a00; }
+
+/* Shared stage spotlight (Pictionary, Charades, Taboo) */
+.stage-scene {
+  background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.1), transparent 55%), linear-gradient(180deg, #1a0f24, #140a1c);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+.easel-frame {
+  background: #8a5a33;
+  border-radius: 14px;
+  padding: 10px;
+  margin: 10px 0;
+}
+.easel-frame .pictionary-canvas { margin: 0 auto; }
+
+/* Antakshari: concert stage */
+.concert-stage {
+  background: radial-gradient(circle at 50% 120%, rgba(255, 217, 61, 0.25), transparent 60%), linear-gradient(180deg, #1a0f24, #0e0a16);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
 
 /* Game over reveal table */
 .reveal-table {

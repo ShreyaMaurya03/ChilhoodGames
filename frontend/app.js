@@ -608,15 +608,15 @@ function renderChatBox(container) {
 
 function startCountdown(el, seconds) {
   let remaining = Math.round(seconds);
-  el.textContent = `${remaining}s`;
+  const paint = () => {
+    el.textContent = `${Math.max(remaining, 0)}s`;
+    el.classList.toggle("countdown-urgent", remaining <= 5 && remaining > 0);
+  };
+  paint();
   countdownInterval = setInterval(() => {
     remaining -= 1;
-    if (remaining <= 0) {
-      el.textContent = "0s";
-      clearInterval(countdownInterval);
-    } else {
-      el.textContent = `${remaining}s`;
-    }
+    paint();
+    if (remaining <= 0) clearInterval(countdownInterval);
   }, 1000);
 }
 
@@ -789,10 +789,12 @@ function renderThiefPolice(root, msg) {
 
   root.innerHTML = `
     <h2>Thief &amp; Police</h2>
-    <p class="muted">You are <strong>${myRole ? myRole.toUpperCase() : "..."}</strong></p>
-    ${isPolice
-      ? `<p>Who do you think is the <strong>Thief</strong>?</p><div class="suspect-list"></div>`
-      : `<p class="muted">The Police is deciding who the Thief is...</p>`}
+    <div class="noir-scene">
+      <p class="muted">You are <strong>${myRole ? myRole.toUpperCase() : "..."}</strong></p>
+      ${isPolice
+        ? `<p>Who do you think is the <strong>Thief</strong>?</p><div class="suspect-list"></div>`
+        : `<p class="muted">The Police is deciding who the Thief is...</p>`}
+    </div>
   `;
 
   if (isPolice) {
@@ -820,10 +822,10 @@ function renderSpyfall(root, msg) {
 
   root.innerHTML = `
     <h2>Spyfall</h2>
-    <div class="role-card ${isSpy ? "spy" : ""}">
+    <div class="role-card ticket-card ${isSpy ? "spy" : ""}">
       ${isSpy
-        ? `<p><strong>You are the SPY.</strong> Blend in and figure out the location.</p>`
-        : `<p>Location: <strong>${role ? role.location : "..."}</strong></p>`}
+        ? `<p>🕶️ <strong>You are the SPY.</strong> Blend in and figure out the location.</p>`
+        : `<p>📍 Location: <strong>${role ? role.location : "..."}</strong></p>`}
     </div>
     <p class="muted">Phase: ${msg.phase} <span class="countdown" id="spy-countdown"></span></p>
   `;
@@ -892,9 +894,11 @@ function renderTwentyQuestions(root, msg) {
 
   root.innerHTML = `
     <h2>20 Questions</h2>
-    <p class="muted">Answerer: <strong>${nicknameOf(msg.answerer_id)}</strong> &middot;
-       Questions asked: ${msg.questions_asked}/${msg.max_questions}</p>
-    ${isAnswerer && role && role.secret ? `<p>Your secret word: <strong>${role.secret}</strong></p>` : ""}
+    <div class="quiz-stage">
+      <p class="muted">Answerer: <strong>${nicknameOf(msg.answerer_id)}</strong> &middot;
+         Questions asked: ${msg.questions_asked}/${msg.max_questions}</p>
+      ${isAnswerer && role && role.secret ? `<p>🔒 Your secret word: <strong>${role.secret}</strong></p>` : ""}
+    </div>
     <div class="qa-log"></div>
   `;
 
@@ -971,11 +975,13 @@ function renderMafia(root, msg) {
 
   root.innerHTML = `
     <h2>Mafia</h2>
-    <p class="muted">Round ${msg.round} &middot; Phase: <strong>${msg.phase}</strong>
-       <span class="countdown" id="mafia-countdown"></span></p>
-    <p class="muted">Your role: <strong>${myRoleName ? myRoleName.toUpperCase() : "..."}</strong>
-       ${!amAlive ? " (eliminated - spectating)" : ""}</p>
-    ${role && role.allies && role.allies.length ? `<p class="muted">Fellow mafia: ${role.allies.map(nicknameOf).join(", ")}</p>` : ""}
+    <div class="village-scene ${msg.phase === "night" ? "village-night" : "village-day"}">
+      <p class="muted">Round ${msg.round} &middot; Phase: <strong>${msg.phase}</strong>
+         <span class="countdown" id="mafia-countdown"></span></p>
+      <p class="muted">Your role: <strong>${myRoleName ? myRoleName.toUpperCase() : "..."}</strong>
+         ${!amAlive ? " (eliminated - spectating)" : ""}</p>
+      ${role && role.allies && role.allies.length ? `<p class="muted">Fellow mafia: ${role.allies.map(nicknameOf).join(", ")}</p>` : ""}
+    </div>
     <div class="alive-row">${alive.map((pid) => `<span class="alive-chip">${nicknameOf(pid)}</span>`).join("")}</div>
     <div id="mafia-announce" class="muted"></div>
     <div id="mafia-action"></div>
@@ -1184,10 +1190,12 @@ function renderClueRound(root, msg, opts) {
   if (!state.clueRoundInitialized) {
     root.innerHTML = `
       <h2 id="cr-title"></h2>
-      <p class="muted">Round <span id="cr-round"></span>/<span id="cr-total"></span> &middot;
-         <span id="cr-giver-label"></span> &middot; <span class="countdown" id="cr-timer"></span></p>
-      <div id="cr-word-banner" class="role-card hidden"></div>
-      <div id="cr-taboo-list" class="alive-row hidden"></div>
+      <div class="stage-scene">
+        <p class="muted">Round <span id="cr-round"></span>/<span id="cr-total"></span> &middot;
+           <span id="cr-giver-label"></span> &middot; <span class="countdown" id="cr-timer"></span></p>
+        <div id="cr-word-banner" class="role-card hidden"></div>
+        <div id="cr-taboo-list" class="alive-row hidden"></div>
+      </div>
       <div id="cr-guess-row" class="action-row hidden">
         <input type="text" id="cr-guess-input" placeholder="Type your guess..." maxlength="50" />
         <button id="cr-guess-btn" class="primary">Guess</button>
@@ -1290,10 +1298,12 @@ function renderPictionary(root, msg) {
   if (!state.clueRoundInitialized) {
     root.innerHTML = `
       <h2>Pictionary</h2>
-      <p class="muted">Round <span id="cr-round"></span>/<span id="cr-total"></span> &middot;
-         <span id="cr-giver-label"></span> &middot; <span class="countdown" id="cr-timer"></span></p>
-      <div id="cr-word-banner" class="role-card hidden"></div>
-      <canvas id="pic-canvas" class="pictionary-canvas" width="500" height="340"></canvas>
+      <div class="stage-scene">
+        <p class="muted">Round <span id="cr-round"></span>/<span id="cr-total"></span> &middot;
+           <span id="cr-giver-label"></span> &middot; <span class="countdown" id="cr-timer"></span></p>
+        <div id="cr-word-banner" class="role-card hidden"></div>
+      </div>
+      <div class="easel-frame"><canvas id="pic-canvas" class="pictionary-canvas" width="500" height="340"></canvas></div>
       <div id="pic-tools" class="action-row hidden">
         <button id="pic-clear" class="secondary">Clear canvas</button>
       </div>
@@ -1422,9 +1432,11 @@ function renderAntakshari(root, msg) {
   if (!state.antakshariInitialized) {
     root.innerHTML = `
       <h2>Antakshari</h2>
-      <p class="muted">Turn: <strong id="an-turn"></strong> &middot;
-         Next letter: <strong id="an-letter"></strong> &middot;
-         <span class="countdown" id="an-timer"></span></p>
+      <div class="concert-stage">
+        <p class="muted">🎤 Turn: <strong id="an-turn"></strong> &middot;
+           Next letter: <strong id="an-letter"></strong> &middot;
+           <span class="countdown" id="an-timer"></span></p>
+      </div>
       <div id="an-history" class="qa-log"></div>
       <div id="an-input-row" class="action-row hidden">
         <input type="text" id="an-input" placeholder="Type a song line..." maxlength="80" />
