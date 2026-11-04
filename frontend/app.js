@@ -40,6 +40,7 @@ function resetRoundState() {
   state.slTokens = null;
   state.unoInitialized = false;
   state.ludoInitialized = false;
+  state.ludoTokenEls = null;
   state.pendingWildCardIndex = null;
 }
 
@@ -1661,14 +1662,103 @@ function tokenLabel(token) {
 
 const LUDO_COLOR_HEX = { red: "#e5473b", green: "#0fa968", blue: "#2e7ef0", yellow: "#e8b400" };
 
-function ludoChipHTML(color, token) {
-  const avatar = characterSVG(LUDO_COLOR_HEX[color] || "#999", {});
-  const stateClass = token.state === "base" ? " ludo-chip-base" : token.state === "finished" ? " ludo-chip-finished" : "";
-  return `
-    <span class="ludo-chip${stateClass}">
-      <span class="ludo-chip-avatar">${avatar}</span>
-      <span class="ludo-chip-badge">${tokenLabel(token)}</span>
-    </span>`;
+// Real 52-square Ludo path + per-color home stretches on a 15x15 grid.
+const LUDO_PATH = [
+  [1, 6], [2, 6], [3, 6], [4, 6], [5, 6],
+  [6, 5], [6, 4], [6, 3], [6, 2], [6, 1], [6, 0],
+  [7, 0], [8, 0],
+  [8, 1], [8, 2], [8, 3], [8, 4], [8, 5],
+  [9, 6], [10, 6], [11, 6], [12, 6], [13, 6], [14, 6],
+  [14, 7], [14, 8],
+  [13, 8], [12, 8], [11, 8], [10, 8], [9, 8],
+  [8, 9], [8, 10], [8, 11], [8, 12], [8, 13], [8, 14],
+  [7, 14], [6, 14],
+  [6, 13], [6, 12], [6, 11], [6, 10], [6, 9],
+  [5, 8], [4, 8], [3, 8], [2, 8], [1, 8], [0, 8],
+  [0, 7], [0, 6],
+];
+const LUDO_HOME_STRETCH = {
+  red: [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7]],
+  green: [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 6]],
+  yellow: [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7], [8, 7]],
+  blue: [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9], [7, 8]],
+};
+const LUDO_START_OFFSETS = { red: 0, green: 13, yellow: 26, blue: 39 };
+const LUDO_BASE_BLOCKS = { red: [0, 0], green: [9, 0], yellow: [9, 9], blue: [0, 9] };
+const LUDO_BASE_SLOTS = [[1.5, 1.5], [4.5, 1.5], [1.5, 4.5], [4.5, 4.5]];
+const LUDO_FINISH_SPOTS = { red: [-1, -0.6], green: [0.6, -1], yellow: [1, 0.6], blue: [-0.6, 1] };
+const LUDO_SAFE_INDEXES = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
+const LD_CELL = 20;
+
+function ludoCellPx(col, row) {
+  return { x: col * LD_CELL + LD_CELL / 2, y: row * LD_CELL + LD_CELL / 2 };
+}
+
+function ludoCellForToken(color, token, tokenIndex) {
+  if (token.state === "base") {
+    const [bx, by] = LUDO_BASE_BLOCKS[color];
+    const [sx, sy] = LUDO_BASE_SLOTS[tokenIndex % 4];
+    return { col: bx + sx, row: by + sy };
+  }
+  if (token.state === "finished") {
+    const [fx, fy] = LUDO_FINISH_SPOTS[color];
+    return { col: 7 + fx, row: 7 + fy };
+  }
+  if (token.state === "home_stretch") {
+    const idx = Math.max(0, Math.min(5, token.steps - 51));
+    const [c, r] = LUDO_HOME_STRETCH[color][idx];
+    return { col: c, row: r };
+  }
+  const globalPos = (LUDO_START_OFFSETS[color] + token.steps) % 52;
+  const [c, r] = LUDO_PATH[globalPos];
+  return { col: c, row: r };
+}
+
+function buildLudoBoardSVG() {
+  const hex = (c) => LUDO_COLOR_HEX[c];
+  let svg = `<rect width="300" height="300" fill="#fff8ec"/>`;
+
+  Object.entries(LUDO_BASE_BLOCKS).forEach(([color, [bx, by]]) => {
+    const x = bx * LD_CELL;
+    const y = by * LD_CELL;
+    svg += `<rect x="${x}" y="${y}" width="120" height="120" fill="${hex(color)}" opacity="0.22"/>`;
+    svg += `<rect x="${x + 15}" y="${y + 15}" width="90" height="90" rx="10" fill="#fff8ec" stroke="${hex(color)}" stroke-width="2"/>`;
+    LUDO_BASE_SLOTS.forEach(([sx, sy]) => {
+      const p = ludoCellPx(bx + sx, by + sy);
+      svg += `<circle cx="${p.x}" cy="${p.y}" r="7" fill="none" stroke="${hex(color)}" stroke-width="1.5" opacity="0.5"/>`;
+    });
+  });
+
+  LUDO_PATH.forEach(([c, r], idx) => {
+    const x = c * LD_CELL;
+    const y = r * LD_CELL;
+    const safe = LUDO_SAFE_INDEXES.has(idx);
+    svg += `<rect x="${x}" y="${y}" width="${LD_CELL}" height="${LD_CELL}" fill="${safe ? "#ffe9a8" : "#fff8ec"}" stroke="#d8c7a0" stroke-width="0.5"/>`;
+    if (safe) {
+      const p = ludoCellPx(c, r);
+      svg += `<circle cx="${p.x}" cy="${p.y}" r="3" fill="#c9a227"/>`;
+    }
+  });
+
+  Object.entries(LUDO_START_OFFSETS).forEach(([color, offset]) => {
+    const [c, r] = LUDO_PATH[offset];
+    svg += `<rect x="${c * LD_CELL}" y="${r * LD_CELL}" width="${LD_CELL}" height="${LD_CELL}" fill="${hex(color)}" opacity="0.55"/>`;
+  });
+
+  Object.entries(LUDO_HOME_STRETCH).forEach(([color, cells]) => {
+    cells.forEach(([c, r]) => {
+      svg += `<rect x="${c * LD_CELL}" y="${r * LD_CELL}" width="${LD_CELL}" height="${LD_CELL}" fill="${hex(color)}" opacity="0.4" stroke="#d8c7a0" stroke-width="0.5"/>`;
+    });
+  });
+
+  svg += `
+    <path d="M120,120 L180,120 L150,150 Z" fill="${hex("green")}" opacity="0.6"/>
+    <path d="M180,120 L180,180 L150,150 Z" fill="${hex("yellow")}" opacity="0.6"/>
+    <path d="M180,180 L120,180 L150,150 Z" fill="${hex("blue")}" opacity="0.6"/>
+    <path d="M120,180 L120,120 L150,150 Z" fill="${hex("red")}" opacity="0.6"/>
+    <circle cx="150" cy="150" r="4" fill="#fff8ec"/>`;
+
+  return `<svg viewBox="0 0 300 300" width="100%" height="100%" aria-hidden="true">${svg}</svg>`;
 }
 
 function renderLudo(root, msg) {
@@ -1677,43 +1767,79 @@ function renderLudo(root, msg) {
   const canRoll = isMyTurn && msg.pending_roll === null;
   const canMove = isMyTurn && msg.pending_roll !== null && myRoll;
 
-  root.innerHTML = `
-    <h2>Ludo</h2>
-    <p class="muted">Turn: <strong>${nicknameOf(msg.current_player)}</strong>
-       (<span class="ludo-color-dot ${msg.colors[msg.current_player]}"></span>${msg.colors[msg.current_player]})</p>
-    <div id="ludo-tokens"></div>
-    <p id="ludo-roll-result" class="muted"></p>
-    <button id="ludo-roll" class="primary" ${canRoll ? "" : "disabled"}>Roll Dice</button>
-    <div id="ludo-move-row" class="action-row"></div>
-  `;
+  if (!state.ludoInitialized) {
+    root.innerHTML = `
+      <h2>Ludo</h2>
+      <p class="muted">Turn: <strong id="ludo-turn"></strong>
+         (<span id="ludo-turn-dot" class="ludo-color-dot"></span><span id="ludo-turn-color"></span>)
+         <span id="ludo-die" class="sl-die">?</span></p>
+      <div class="sl-board-wrap">
+        <div class="sl-board">${buildLudoBoardSVG()}</div>
+        <div class="sl-tokens" id="ludo-board-tokens"></div>
+      </div>
+      <p id="ludo-roll-result" class="muted"></p>
+      <button id="ludo-roll" class="primary">Roll Dice</button>
+      <div id="ludo-move-row" class="action-row"></div>
+    `;
+    state.ludoInitialized = true;
+    state.ludoTokenEls = {};
+  }
 
-  const tokensBox = root.querySelector("#ludo-tokens");
+  root.querySelector("#ludo-turn").textContent = nicknameOf(msg.current_player);
+  root.querySelector("#ludo-turn-dot").className = `ludo-color-dot ${msg.colors[msg.current_player]}`;
+  root.querySelector("#ludo-turn-color").textContent = msg.colors[msg.current_player];
+
+  const rollBtn = root.querySelector("#ludo-roll");
+  rollBtn.disabled = !canRoll;
+  rollBtn.onclick = canRoll ? () => send("game_action", { action: { type: "roll" } }) : null;
+
+  const tokenLayer = root.querySelector("#ludo-board-tokens");
+  const seen = new Set();
   state.players.forEach((p) => {
     const color = msg.colors[p.id];
     if (!color) return;
-    const row = document.createElement("div");
-    row.className = "ludo-player-row";
-    const chips = msg.tokens[p.id].map((t) => ludoChipHTML(color, t)).join("");
-    row.innerHTML = `<span class="ludo-name"><span class="ludo-color-dot ${color}"></span>${p.nickname}</span> ${chips}`;
-    tokensBox.appendChild(row);
+    (msg.tokens[p.id] || []).forEach((token, i) => {
+      const key = `${p.id}-${i}`;
+      seen.add(key);
+      const { col, row } = ludoCellForToken(color, token, i);
+      const center = ludoCellPx(col, row);
+      let el = state.ludoTokenEls[key];
+      if (!el) {
+        el = document.createElement("div");
+        el.className = "sl-token ludo-board-token";
+        el.innerHTML = `<div class="arena-char">${characterSVG(LUDO_COLOR_HEX[color], {})}</div>`;
+        tokenLayer.appendChild(el);
+        state.ludoTokenEls[key] = el;
+      }
+      el.style.left = `${(center.x / 300) * 100}%`;
+      el.style.top = `${(center.y / 300) * 100}%`;
+      el.style.opacity = token.state === "base" ? "0.5" : "1";
+    });
+  });
+  Object.keys(state.ludoTokenEls).forEach((key) => {
+    if (!seen.has(key)) {
+      state.ludoTokenEls[key].remove();
+      delete state.ludoTokenEls[key];
+    }
   });
 
   if (state.lastDiceRoll) {
     const r = state.lastDiceRoll;
+    const die = root.querySelector("#ludo-die");
+    die.textContent = r.roll;
+    die.classList.remove("sl-die-roll");
+    void die.offsetWidth;
+    die.classList.add("sl-die-roll");
+
     let text = `🎲 ${nicknameOf(r.player_id)} rolled a ${r.roll}`;
     if (r.forfeited) text += " - three 6s in a row, turn forfeited!";
     else if (r.movable.length === 0) text += " - no valid moves.";
     root.querySelector("#ludo-roll-result").textContent = text;
   }
 
-  if (canRoll) {
-    root.querySelector("#ludo-roll").addEventListener("click", () => {
-      send("game_action", { action: { type: "roll" } });
-    });
-  }
-
+  const moveRow = root.querySelector("#ludo-move-row");
+  moveRow.innerHTML = "";
   if (canMove) {
-    const moveRow = root.querySelector("#ludo-move-row");
     myRoll.movable.forEach((tokenIndex) => {
       const token = msg.tokens[state.playerId][tokenIndex];
       const btn = document.createElement("button");
