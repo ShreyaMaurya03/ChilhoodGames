@@ -36,6 +36,8 @@ function resetRoundState() {
   state.lastDiceRoll = null;
   state.myHand = null;
   state.snakeLadderInitialized = false;
+  state.slInitialized = false;
+  state.slTokens = null;
   state.unoInitialized = false;
   state.ludoInitialized = false;
   state.pendingWildCardIndex = null;
@@ -1447,41 +1449,139 @@ function renderAntakshari(root, msg) {
 
 // ---------- Snake and Ladder ----------
 
+const SL_BOARD_PX = 300;
+const SL_CELL = 30;
+
+function slSquareCenter(n) {
+  const num = Math.max(1, Math.min(100, n));
+  const idx = num - 1;
+  const row = Math.floor(idx / 10);
+  let col = idx % 10;
+  if (row % 2 === 1) col = 9 - col;
+  return { x: col * SL_CELL + SL_CELL / 2, y: SL_BOARD_PX - (row + 1) * SL_CELL + SL_CELL / 2 };
+}
+
+function buildSnakeLadderBoardSVG(snakes, ladders) {
+  let cells = "";
+  for (let n = 1; n <= 100; n++) {
+    const { x, y } = slSquareCenter(n);
+    const row = Math.floor((n - 1) / 10);
+    const col = (n - 1) % 10;
+    const dark = (row + col) % 2 === 0;
+    cells += `
+      <rect x="${x - 15}" y="${y - 15}" width="30" height="30" fill="${dark ? "#e8dcc0" : "#f3ead3"}" stroke="#c9b98f" stroke-width="0.5"/>
+      <text x="${x - 13}" y="${y - 9}" font-size="6" fill="#8a7a55">${n}</text>`;
+  }
+
+  let ladderShapes = "";
+  Object.entries(ladders || {}).forEach(([start, end]) => {
+    const a = slSquareCenter(Number(start));
+    const b = slSquareCenter(Number(end));
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = (-dy / len) * 4;
+    const ny = (dx / len) * 4;
+    let rungs = "";
+    const steps = Math.max(2, Math.floor(len / 12));
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const mx = a.x + dx * t;
+      const my = a.y + dy * t;
+      rungs += `<line x1="${mx + nx}" y1="${my + ny}" x2="${mx - nx}" y2="${my - ny}" stroke="#a9742f" stroke-width="1.5"/>`;
+    }
+    ladderShapes += `
+      <line x1="${a.x + nx}" y1="${a.y + ny}" x2="${b.x + nx}" y2="${b.y + ny}" stroke="#c98b3c" stroke-width="2"/>
+      <line x1="${a.x - nx}" y1="${a.y - ny}" x2="${b.x - nx}" y2="${b.y - ny}" stroke="#c98b3c" stroke-width="2"/>
+      ${rungs}`;
+  });
+
+  let snakeShapes = "";
+  Object.entries(snakes || {}).forEach(([start, end]) => {
+    const a = slSquareCenter(Number(start));
+    const b = slSquareCenter(Number(end));
+    const midx = (a.x + b.x) / 2 + (((Number(start) * 7) % 10) - 5) * 3;
+    const midy = (a.y + b.y) / 2;
+    snakeShapes += `
+      <path d="M${a.x} ${a.y} Q${midx} ${midy} ${b.x} ${b.y}" stroke="#3f8f4a" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.88"/>
+      <circle cx="${a.x}" cy="${a.y}" r="5.5" fill="#2f6e3a"/>
+      <circle cx="${a.x - 1.6}" cy="${a.y - 1.6}" r="1" fill="white"/>
+      <circle cx="${a.x + 1.6}" cy="${a.y - 1.6}" r="1" fill="white"/>`;
+  });
+
+  return `
+    <svg viewBox="0 0 300 300" width="100%" height="100%" aria-hidden="true">
+      <rect width="300" height="300" fill="#f3ead3"/>
+      ${cells}
+      ${ladderShapes}
+      ${snakeShapes}
+    </svg>`;
+}
+
+const SL_TOKEN_OFFSETS = [[-6, -6], [6, -6], [-6, 6], [6, 6]];
+
 function renderSnakeLadder(root, msg) {
   const isMyTurn = state.playerId === msg.current_player;
-  root.innerHTML = `
-    <h2>Snake and Ladder</h2>
-    <p class="muted">Turn: <strong>${nicknameOf(msg.current_player)}</strong></p>
-    <div class="track"></div>
-    <button id="sl-roll" class="primary" ${isMyTurn ? "" : "disabled"}>${isMyTurn ? "Roll Dice" : "Waiting..."}</button>
-    <p id="sl-roll-result" class="muted"></p>
-  `;
 
-  const track = root.querySelector(".track");
-  Object.entries(msg.positions).forEach(([pid, pos]) => {
-    const row = document.createElement("div");
-    row.className = "track-row";
-    row.innerHTML = `
-      <span class="name">${nicknameOf(pid)}</span>
-      <div class="track-bar"><div class="track-fill" style="width:${pos}%"></div></div>
-      <span class="muted sl-pos">${pos}</span>
+  if (!state.slInitialized) {
+    root.innerHTML = `
+      <h2>Snake and Ladder</h2>
+      <p class="muted">Turn: <strong id="sl-turn"></strong> &middot; <span id="sl-die" class="sl-die">?</span></p>
+      <div class="sl-board-wrap">
+        <div class="sl-board">${buildSnakeLadderBoardSVG(msg.snakes, msg.ladders)}</div>
+        <div class="sl-tokens" id="sl-tokens"></div>
+      </div>
+      <button id="sl-roll" class="primary">Roll Dice</button>
+      <p id="sl-roll-result" class="muted"></p>
     `;
-    track.appendChild(row);
+    state.slInitialized = true;
+    state.slTokens = {};
+  }
+
+  root.querySelector("#sl-turn").textContent = nicknameOf(msg.current_player);
+  const rollBtn = root.querySelector("#sl-roll");
+  rollBtn.disabled = !isMyTurn;
+  rollBtn.textContent = isMyTurn ? "Roll Dice" : "Waiting...";
+  rollBtn.onclick = isMyTurn ? () => send("game_action", { action: { type: "roll" } }) : null;
+
+  const tokenLayer = root.querySelector("#sl-tokens");
+  const seen = new Set();
+  state.players.forEach((p, i) => {
+    seen.add(p.id);
+    const pos = msg.positions[p.id] || 0;
+    const center = slSquareCenter(pos || 1);
+    const [ox, oy] = SL_TOKEN_OFFSETS[i % SL_TOKEN_OFFSETS.length];
+    let token = state.slTokens[p.id];
+    if (!token) {
+      token = document.createElement("div");
+      token.className = "sl-token";
+      token.innerHTML = `<div class="arena-char">${characterSVG(avatarColorFor(p.id), {})}</div>`;
+      tokenLayer.appendChild(token);
+      state.slTokens[p.id] = token;
+    }
+    token.style.left = `${((center.x + (pos ? ox : 0)) / SL_BOARD_PX) * 100}%`;
+    token.style.top = `${((center.y + (pos ? oy : 0)) / SL_BOARD_PX) * 100}%`;
+  });
+  Object.keys(state.slTokens).forEach((pid) => {
+    if (!seen.has(pid)) {
+      state.slTokens[pid].remove();
+      delete state.slTokens[pid];
+    }
   });
 
   if (state.lastDiceRoll) {
     const r = state.lastDiceRoll;
+    const die = root.querySelector("#sl-die");
+    die.textContent = r.roll;
+    die.classList.remove("sl-die-roll");
+    void die.offsetWidth;
+    die.classList.add("sl-die-roll");
+
     let text = `🎲 ${nicknameOf(r.player_id)} rolled a ${r.roll}`;
     if (r.landed_on === "snake") text += " - bitten by a snake! 🐍";
     else if (r.landed_on === "ladder") text += " - climbed a ladder! 🪜";
     else if (!r.moved) text += " - can't move (would overshoot 100).";
     root.querySelector("#sl-roll-result").textContent = text;
-  }
-
-  if (isMyTurn) {
-    root.querySelector("#sl-roll").addEventListener("click", () => {
-      send("game_action", { action: { type: "roll" } });
-    });
   }
 }
 
