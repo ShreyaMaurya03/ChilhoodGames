@@ -39,6 +39,7 @@ function resetRoundState() {
   state.slInitialized = false;
   state.slTokens = null;
   state.unoInitialized = false;
+  state.unoLastTopKey = null;
   state.ludoInitialized = false;
   state.ludoTokenEls = null;
   state.pendingWildCardIndex = null;
@@ -1599,13 +1600,20 @@ function renderUno(root, msg) {
   const isMyTurn = state.playerId === msg.current_player;
   const hand = state.myHand || [];
 
+  const topKey = msg.top_card ? `${msg.top_card.color}-${msg.top_card.value}` : null;
+  const topChanged = topKey !== state.unoLastTopKey;
+  state.unoLastTopKey = topKey;
+
   root.innerHTML = `
     <h2>Uno</h2>
     <p class="muted">Turn: <strong>${nicknameOf(msg.current_player)}</strong> &middot;
        Direction: ${msg.direction === 1 ? "➡️" : "⬅️"}</p>
-    <div class="uno-table">
-      <div class="uno-card uno-top ${msg.top_card ? msg.top_card.color : ""}">${msg.top_card ? cardLabel(msg.top_card) : ""}</div>
-      <div class="muted">Color: <span class="uno-color-dot ${msg.current_color}"></span> ${msg.current_color}</div>
+    <div class="uno-felt">
+      <div class="uno-table">
+        <div class="uno-deck" title="Draw pile">🂠</div>
+        <div class="uno-card uno-top ${msg.top_card ? msg.top_card.color : ""} ${topChanged ? "uno-card-flip" : ""}">${msg.top_card ? cardLabel(msg.top_card) : ""}</div>
+        <div class="muted">Color: <span class="uno-color-dot ${msg.current_color}"></span> ${msg.current_color}</div>
+      </div>
     </div>
     <div class="alive-row">
       ${Object.entries(msg.hand_counts || {}).map(([pid, n]) => `<span class="alive-chip">${nicknameOf(pid)}: ${n}</span>`).join("")}
@@ -1629,6 +1637,7 @@ function renderUno(root, msg) {
         state.pendingWildCardIndex = idx;
         root.querySelector("#uno-wild-picker").classList.remove("hidden");
       } else {
+        btn.classList.add("uno-card-playing");
         send("game_action", { action: { type: "play", card_index: idx } });
       }
     });
