@@ -249,12 +249,18 @@ button.secondary { background: transparent; color: var(--muted); border: 1px sol
 .badge-out { background: var(--danger); color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; }
 
 /* Tic Tac Toe */
+.ttt-board-wrap {
+  background: repeating-linear-gradient(90deg, #6b4226, #6b4226 8px, #5a3620 8px, #5a3620 16px);
+  border-radius: 14px;
+  padding: 16px;
+  max-width: 332px;
+  margin: 16px auto;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.4);
+}
 .ttt-board {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  max-width: 300px;
-  margin: 16px auto;
 }
 .ttt-cell {
   aspect-ratio: 1;
@@ -269,50 +275,115 @@ button.secondary { background: transparent; color: var(--muted); border: 1px sol
   justify-content: center;
 }
 .ttt-cell.clickable:hover { background: #181b26; }
+.ttt-pop { animation: ttt-pop 0.25s ease; }
+@keyframes ttt-pop {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
 
 /* Simon Says */
+.simon-stage {
+  position: relative;
+  background: radial-gradient(circle at 50% 15%, rgba(255, 255, 255, 0.1), transparent 60%), linear-gradient(180deg, #1a0f24, #2b0f1a);
+  border-radius: 16px;
+  padding: 24px 46px;
+  overflow: hidden;
+}
+.simon-stage::before, .simon-stage::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 15%;
+  background: linear-gradient(180deg, #7a1f2b, #4a0f18);
+}
+.simon-stage::before { left: 0; border-radius: 0 40px 40px 0; }
+.simon-stage::after { right: 0; border-radius: 40px 0 0 40px; }
 .simon-grid {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   max-width: 280px;
-  margin: 20px auto;
+  margin: 0 auto;
 }
 .simon-pad {
   aspect-ratio: 1;
   border-radius: 16px;
   opacity: 0.55;
   border: 3px solid transparent;
+  transition: opacity 0.15s ease, box-shadow 0.15s ease;
 }
 .simon-pad.lit { opacity: 1; border-color: white; }
 .simon-pad.red { background: #ff5c7a; }
+.simon-pad.red.lit { box-shadow: 0 0 22px 6px #ff5c7a; }
 .simon-pad.green { background: #00d9a3; }
+.simon-pad.green.lit { box-shadow: 0 0 22px 6px #00d9a3; }
 .simon-pad.blue { background: #4ea1ff; }
+.simon-pad.blue.lit { box-shadow: 0 0 22px 6px #4ea1ff; }
 .simon-pad.yellow { background: #ffd93d; }
+.simon-pad.yellow.lit { box-shadow: 0 0 22px 6px #ffd93d; }
 
 /* Red Light Green Light */
-.light-indicator {
-  text-align: center;
-  font-size: 1.4rem;
-  font-weight: 800;
-  padding: 16px;
-  border-radius: 12px;
+.rlgl-street {
+  background: repeating-linear-gradient(0deg, #333 0 2px, #3a3a3a 2px 40px), #2e2e2e;
+  border-radius: 14px;
+  padding: 18px;
   margin-bottom: 16px;
 }
-.light-indicator.green { background: #103b2d; color: var(--accent-2); }
-.light-indicator.red { background: #3b1420; color: var(--danger); }
+.traffic-light {
+  width: 38px;
+  margin: 0 auto 8px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  align-items: center;
+}
+.traffic-bulb { width: 18px; height: 18px; border-radius: 50%; background: #3a3a3a; }
+.traffic-bulb.red.on { background: #ff3b3b; box-shadow: 0 0 12px 4px #ff3b3b; }
+.traffic-bulb.green.on { background: #2ecc71; box-shadow: 0 0 12px 4px #2ecc71; }
+.rlgl-call { text-align: center; font-weight: 800; color: white; margin: 0 0 14px; letter-spacing: 1px; }
 
-.track { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.track { display: flex; flex-direction: column; gap: 8px; }
 .track-row { display: flex; align-items: center; gap: 8px; }
 .track-row .name { width: 90px; font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.track-bar { flex: 1; height: 14px; background: #10121a; border-radius: 999px; overflow: hidden; }
-.track-fill { height: 100%; background: var(--accent); }
+.track-bar { position: relative; flex: 1; height: 14px; background: #10121a; border-radius: 999px; overflow: visible; }
+.track-fill { height: 100%; background: var(--accent); border-radius: 999px; overflow: hidden; }
+.track-runner {
+  position: absolute;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+  transition: left 0.2s ease;
+}
 .track-row.eliminated .name { text-decoration: line-through; color: var(--danger); }
 
 /* Musical Chairs */
+.music-party-bg {
+  background:
+    radial-gradient(circle at 20% 25%, rgba(255, 107, 157, 0.25), transparent 40%),
+    radial-gradient(circle at 80% 30%, rgba(78, 161, 255, 0.25), transparent 40%),
+    radial-gradient(circle at 50% 85%, rgba(255, 217, 61, 0.2), transparent 40%),
+    #1a1d27;
+  border-radius: 14px;
+}
 .music-box { text-align: center; padding: 30px 0; }
-.music-box .icon { font-size: 3rem; }
+.music-box .icon { font-size: 3rem; display: inline-block; animation: note-float 1.5s ease-in-out infinite; }
+@keyframes note-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(8deg); }
+}
 .sit-btn { background: var(--danger); color: white; font-size: 1.3rem; padding: 20px; width: 100%; }
+.sit-btn.urgent { animation: sit-pulse 0.5s ease-in-out infinite; }
+@keyframes sit-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
 
 .alive-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
 .alive-chip { background: #10121a; padding: 4px 10px; border-radius: 999px; font-size: 0.8rem; }

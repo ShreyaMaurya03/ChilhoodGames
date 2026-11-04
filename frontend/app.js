@@ -43,6 +43,7 @@ function resetRoundState() {
   state.ludoInitialized = false;
   state.ludoTokenEls = null;
   state.pendingWildCardIndex = null;
+  state.tttLastBoard = null;
 }
 
 // ---------- Arena movement controls (Hide & Seek, Freeze Tag) ----------
@@ -636,23 +637,26 @@ function renderTicTacToe(root, msg) {
   const mySymbol = msg.symbols[state.playerId];
   const isSpectator = msg.spectators.includes(state.playerId);
   const myTurn = msg.turn === state.playerId;
+  const prevBoard = state.tttLastBoard || [];
 
   root.innerHTML = `
     <h2>Tic-Tac-Toe</h2>
     <p class="muted">${isSpectator ? "You are spectating." : `You are <strong>${mySymbol}</strong>.`}
        ${myTurn && !isSpectator ? " Your move!" : ""}</p>
-    <div class="ttt-board"></div>
+    <div class="ttt-board-wrap"><div class="ttt-board"></div></div>
   `;
   const board = root.querySelector(".ttt-board");
   msg.board.forEach((val, i) => {
     const cell = document.createElement("div");
-    cell.className = "ttt-cell" + (!val && myTurn && !isSpectator ? " clickable" : "");
+    const isNew = val && !prevBoard[i];
+    cell.className = "ttt-cell" + (!val && myTurn && !isSpectator ? " clickable" : "") + (isNew ? " ttt-pop" : "");
     cell.textContent = val || "";
     if (!val && myTurn && !isSpectator) {
       cell.addEventListener("click", () => send("game_action", { action: { cell: i } }));
     }
     board.appendChild(cell);
   });
+  state.tttLastBoard = msg.board.slice();
 }
 
 // Simon Says
@@ -665,8 +669,10 @@ function renderSimonSays(root, msg, event) {
   root.innerHTML = `
     <h2>Simon Says</h2>
     <p class="muted">Round ${msg.round} — sequence length ${sequence.length}</p>
-    <div class="simon-grid">
-      ${["red", "green", "blue", "yellow"].map((c) => `<button class="simon-pad ${c}" data-color="${c}"></button>`).join("")}
+    <div class="simon-stage">
+      <div class="simon-grid">
+        ${["red", "green", "blue", "yellow"].map((c) => `<button class="simon-pad ${c}" data-color="${c}"></button>`).join("")}
+      </div>
     </div>
     <p id="simon-status" class="muted">${amAlive ? "Watch, then repeat it." : "You're out — spectating."}</p>
     <div class="alive-row">
@@ -711,8 +717,14 @@ function renderRedLightGreenLight(root, msg) {
   const alive = msg.alive[state.playerId];
   root.innerHTML = `
     <h2>Red Light, Green Light</h2>
-    <div class="light-indicator ${msg.light}">${msg.light === "green" ? "🟢 GO!" : "🔴 STOP!"}</div>
-    <div class="track"></div>
+    <div class="rlgl-street">
+      <div class="traffic-light">
+        <div class="traffic-bulb red ${msg.light === "red" ? "on" : ""}"></div>
+        <div class="traffic-bulb green ${msg.light === "green" ? "on" : ""}"></div>
+      </div>
+      <p class="rlgl-call">${msg.light === "green" ? "GO!" : "STOP!"}</p>
+      <div class="track"></div>
+    </div>
     <button id="move-btn" class="primary" ${alive ? "" : "disabled"}>${alive ? "Move!" : "Eliminated"}</button>
   `;
   const track = root.querySelector(".track");
@@ -721,7 +733,10 @@ function renderRedLightGreenLight(root, msg) {
     row.className = "track-row" + (msg.alive[pid] ? "" : " eliminated");
     row.innerHTML = `
       <span class="name">${nicknameOf(pid)}</span>
-      <div class="track-bar"><div class="track-fill" style="width:${pos}%"></div></div>
+      <div class="track-bar">
+        <div class="track-fill" style="width:${pos}%"></div>
+        <div class="track-runner" style="left:${pos}%">${characterSVG(avatarColorFor(pid), {})}</div>
+      </div>
     `;
     track.appendChild(row);
   });
@@ -745,10 +760,12 @@ function renderMusicalChairs(root, msg) {
   root.innerHTML = `
     <h2>Musical Chairs</h2>
     <p class="muted">Round ${msg.round}</p>
-    <div class="music-box">
-      <div class="icon">${playing ? "🎵" : stopped ? "🛑" : "🎵"}</div>
-      <p>${playing ? "The music is playing…" : stopped ? "MUSIC STOPPED — SIT NOW!" : ""}</p>
-      ${stopped ? `<button id="sit-btn" class="sit-btn">SIT!</button>` : ""}
+    <div class="music-party-bg">
+      <div class="music-box">
+        <div class="icon">${playing ? "🎵" : stopped ? "🛑" : "🎵"}</div>
+        <p>${playing ? "The music is playing…" : stopped ? "MUSIC STOPPED — SIT NOW!" : ""}</p>
+        ${stopped ? `<button id="sit-btn" class="sit-btn urgent">SIT!</button>` : ""}
+      </div>
     </div>
     <div class="alive-row">
       ${(state.lastMusicAlive || []).map((pid) => `<span class="alive-chip">${nicknameOf(pid)}</span>`).join("")}
