@@ -198,14 +198,18 @@ function updateArenaDots(box, positions) {
 const els = {
   status: document.getElementById("connection-status"),
   nickname: document.getElementById("nickname"),
+  nicknameAvatar: document.getElementById("nickname-avatar"),
   gameGrid: document.getElementById("game-grid"),
   joinCode: document.getElementById("join-code"),
   joinBtn: document.getElementById("join-btn"),
   homeError: document.getElementById("home-error"),
 
   lobbyRoomCode: document.getElementById("lobby-room-code"),
+  copyCodeBtn: document.getElementById("copy-code-btn"),
+  lobbyGameIcon: document.getElementById("lobby-game-icon"),
   lobbyGameName: document.getElementById("lobby-game-name"),
   lobbyGameDesc: document.getElementById("lobby-game-desc"),
+  lobbyPlayerCount: document.getElementById("lobby-player-count"),
   lobbyPlayers: document.getElementById("lobby-players"),
   startGameBtn: document.getElementById("start-game-btn"),
   lobbyWaitText: document.getElementById("lobby-wait-text"),
@@ -368,15 +372,43 @@ const GAME_ORDER = [
   "snake_ladder", "uno", "ludo",
 ];
 
+const GAME_ICONS = {
+  tic_tac_toe: "❌", simon_says: "🎵", red_light_green_light: "🚦", musical_chairs: "🪑",
+  thief_police: "🕵️", spyfall: "🔎", twenty_questions: "❓", mafia: "🔪",
+  hide_seek: "🙈", freeze_tag: "🧊", pictionary: "🎨", charades: "🎭",
+  taboo: "🚫", antakshari: "🎤", snake_ladder: "🐍", uno: "🃏", ludo: "🎲",
+};
+
+const AVATAR_PALETTE = ["#e5473b", "#0fa968", "#2e7ef0", "#e8b400", "#9b59b6", "#17c3a2", "#e67e22", "#e84393"];
+
+function hashString(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  }
+  return h;
+}
+
+function avatarColorFor(key) {
+  return AVATAR_PALETTE[hashString(key || "?") % AVATAR_PALETTE.length];
+}
+
 async function loadGames() {
   const res = await fetch("/api/games");
   const games = await res.json();
   els.gameGrid.innerHTML = "";
   GAME_ORDER.filter((id) => games[id]).forEach((id) => {
     const info = games[id];
+    const playerRange = info.min_players === info.max_players
+      ? `${info.min_players} players`
+      : `${info.min_players}-${info.max_players} players`;
     const card = document.createElement("div");
     card.className = "game-card";
     card.innerHTML = `
+      <div class="game-card-top">
+        <span class="game-icon">${GAME_ICONS[id] || "🎮"}</span>
+        <span class="player-tag">${playerRange}</span>
+      </div>
       <h3>${info.name}</h3>
       <p>${info.description}</p>
       <button>Host this game</button>
@@ -388,6 +420,12 @@ async function loadGames() {
     els.gameGrid.appendChild(card);
   });
 }
+
+els.nickname.addEventListener("input", () => {
+  const name = getNickname();
+  els.nicknameAvatar.innerHTML = characterSVG(avatarColorFor(name), {});
+});
+els.nicknameAvatar.innerHTML = characterSVG(avatarColorFor("?"), {});
 
 els.joinBtn.addEventListener("click", () => {
   const code = els.joinCode.value.trim().toUpperCase();
@@ -407,11 +445,18 @@ function renderLobby() {
     els.lobbyGameName.textContent = state.gameInfo.name;
     els.lobbyGameDesc.textContent = state.gameInfo.description;
   }
+  els.lobbyGameIcon.textContent = GAME_ICONS[state.gameType] || "🎮";
+  els.lobbyPlayerCount.textContent = `(${state.players.length})`;
+
   els.lobbyPlayers.innerHTML = "";
   state.players.forEach((p) => {
     const li = document.createElement("li");
     if (!p.connected) li.className = "disconnected";
-    li.innerHTML = `<span>${p.nickname}</span>` + (p.id === state.hostId ? `<span class="badge-host">HOST</span>` : "");
+    li.innerHTML = `
+      <span class="mini-avatar">${characterSVG(avatarColorFor(p.id), {})}</span>
+      <span class="player-name">${p.nickname}</span>
+      ${p.id === state.hostId ? `<span class="badge-host">👑 HOST</span>` : ""}
+    `;
     els.lobbyPlayers.appendChild(li);
   });
 
@@ -427,6 +472,19 @@ els.startGameBtn.addEventListener("click", () => {
 
 els.leaveLobbyBtn.addEventListener("click", () => {
   location.reload();
+});
+
+els.copyCodeBtn.addEventListener("click", () => {
+  const code = state.roomCode || "";
+  const finish = (ok) => {
+    els.copyCodeBtn.textContent = ok ? "Copied!" : "Copy";
+    setTimeout(() => { els.copyCodeBtn.textContent = "Copy"; }, 1500);
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(code).then(() => finish(true)).catch(() => finish(false));
+  } else {
+    finish(false);
+  }
 });
 
 // ---------- Game screens ----------
