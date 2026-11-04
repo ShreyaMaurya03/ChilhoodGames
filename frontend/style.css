@@ -314,16 +314,14 @@ button.secondary { background: transparent; color: var(--muted); border: 1px sol
 }
 .arena-dot {
   position: absolute;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--accent-2);
+  width: 42px;
+  height: 42px;
   transform: translate(-50%, -50%);
   transition: left 0.15s linear, top 0.15s linear;
 }
-.arena-dot.seeker { background: var(--danger); }
-.arena-dot.me { box-shadow: 0 0 0 3px white; }
-.arena-dot.caught { background: #555; opacity: 0.5; }
+.arena-char { width: 100%; height: 100%; }
+.arena-dot.me .arena-char svg { filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 3px #fff); }
+.arena-dot.caught .arena-char svg { opacity: 0.75; }
 .arena-label {
   position: absolute;
   top: 100%;
@@ -453,20 +451,31 @@ button.secondary { background: transparent; color: var(--muted); border: 1px sol
 .ludo-color-dot.blue { background: #2e7ef0; }
 .ludo-color-dot.yellow { background: #e8b400; }
 .ludo-chip {
-  display: inline-flex;
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 36px;
+}
+.ludo-chip-avatar { display: block; width: 100%; height: 100%; }
+.ludo-chip-base .ludo-chip-avatar { opacity: 0.45; }
+.ludo-chip-finished .ludo-chip-avatar { filter: drop-shadow(0 0 3px #ffd93d); }
+.ludo-chip-badge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: #10121a;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.6rem;
+  font-weight: 700;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: white;
 }
-.ludo-chip.red { background: #e5473b; }
-.ludo-chip.green { background: #0fa968; }
-.ludo-chip.blue { background: #2e7ef0; }
-.ludo-chip.yellow { background: #e8b400; }
 
 /* Game over reveal table */
 .reveal-table {

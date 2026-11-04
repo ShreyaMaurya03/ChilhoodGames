@@ -122,6 +122,44 @@ function buildDpad() {
   return pad;
 }
 
+// Hand-authored illustrated character avatar (top-down chibi style).
+// Recraft (the project's standard image-generation tool) isn't configured in
+// this session, so this is a hand-drawn SVG fallback at the best quality
+// achievable by hand, per that tool's own documented fallback rule.
+function characterSVG(colorHex, { isChaser, caught } = {}) {
+  const bodyColor = caught ? "#8a8d99" : colorHex;
+  const eyes = caught
+    ? `<line x1="15" y1="19" x2="19" y2="23" stroke="#2a2a2a" stroke-width="1.6" stroke-linecap="round"/>
+       <line x1="19" y1="19" x2="15" y2="23" stroke="#2a2a2a" stroke-width="1.6" stroke-linecap="round"/>
+       <line x1="25" y1="19" x2="29" y2="23" stroke="#2a2a2a" stroke-width="1.6" stroke-linecap="round"/>
+       <line x1="29" y1="19" x2="25" y2="23" stroke="#2a2a2a" stroke-width="1.6" stroke-linecap="round"/>`
+    : `<circle cx="17" cy="21" r="1.7" fill="#2a2a2a"/><circle cx="27" cy="21" r="1.7" fill="#2a2a2a"/>`;
+  const mouth = caught
+    ? ""
+    : `<path d="M18 26 Q22 29.5 26 26" stroke="#2a2a2a" stroke-width="1.6" fill="none" stroke-linecap="round"/>`;
+  const chaserMark = isChaser && !caught
+    ? `<path d="M9 13.5 Q22 2.5 35 13.5 L30 17 Q22 10.5 14 17 Z" fill="#e5473b"/>
+       <circle cx="22" cy="8.5" r="2" fill="#ffd9b0"/>`
+    : "";
+  const iceOverlay = caught
+    ? `<g stroke="#bfe6ff" stroke-width="1.6" stroke-linecap="round">
+         <path d="M4 6 L7 11 M7 6 L4 11"/><path d="M38 6 L41 11 M41 6 L38 11"/>
+       </g>`
+    : "";
+  return `
+    <svg viewBox="0 0 44 44" width="100%" height="100%" aria-hidden="true">
+      <ellipse cx="22" cy="40.5" rx="10" ry="2.2" fill="rgba(0,0,0,0.28)"/>
+      <ellipse cx="22" cy="30" rx="13" ry="10" fill="${bodyColor}"/>
+      <circle cx="10.5" cy="28" r="4" fill="${bodyColor}"/>
+      <circle cx="33.5" cy="28" r="4" fill="${bodyColor}"/>
+      <circle cx="22" cy="19" r="11" fill="#ffd9b0"/>
+      ${chaserMark}
+      ${eyes}
+      ${mouth}
+      ${iceOverlay}
+    </svg>`;
+}
+
 function updateArenaDots(box, positions) {
   if (!state.arenaDots) state.arenaDots = {};
   const seenIds = new Set();
@@ -131,18 +169,23 @@ function updateArenaDots(box, positions) {
     if (!dot) {
       dot = document.createElement("div");
       dot.className = "arena-dot";
+      const charWrap = document.createElement("div");
+      charWrap.className = "arena-char";
       const label = document.createElement("span");
       label.className = "arena-label";
       label.textContent = nicknameOf(pid);
+      dot.appendChild(charWrap);
       dot.appendChild(label);
       box.appendChild(dot);
       state.arenaDots[pid] = dot;
     }
     dot.style.left = `${p.x}%`;
     dot.style.top = `${p.y}%`;
-    const extraClass = p.role === "seeker" || p.role === "it" ? " seeker" : " runner";
-    const stateClass = p.found || p.frozen ? " caught" : "";
-    dot.className = "arena-dot" + (pid === state.playerId ? " me" : "") + extraClass + stateClass;
+    const isChaser = p.role === "seeker" || p.role === "it";
+    const caught = !!(p.found || p.frozen);
+    const color = isChaser ? "#e5473b" : "#17c3a2";
+    dot.querySelector(".arena-char").innerHTML = characterSVG(color, { isChaser, caught });
+    dot.className = "arena-dot" + (pid === state.playerId ? " me" : "") + (caught ? " caught" : "");
   });
   Object.keys(state.arenaDots).forEach((pid) => {
     if (!seenIds.has(pid)) {
@@ -1346,6 +1389,18 @@ function tokenLabel(token) {
   return String(token.steps);
 }
 
+const LUDO_COLOR_HEX = { red: "#e5473b", green: "#0fa968", blue: "#2e7ef0", yellow: "#e8b400" };
+
+function ludoChipHTML(color, token) {
+  const avatar = characterSVG(LUDO_COLOR_HEX[color] || "#999", {});
+  const stateClass = token.state === "base" ? " ludo-chip-base" : token.state === "finished" ? " ludo-chip-finished" : "";
+  return `
+    <span class="ludo-chip${stateClass}">
+      <span class="ludo-chip-avatar">${avatar}</span>
+      <span class="ludo-chip-badge">${tokenLabel(token)}</span>
+    </span>`;
+}
+
 function renderLudo(root, msg) {
   const isMyTurn = state.playerId === msg.current_player;
   const myRoll = state.lastDiceRoll && state.lastDiceRoll.player_id === state.playerId ? state.lastDiceRoll : null;
@@ -1368,7 +1423,7 @@ function renderLudo(root, msg) {
     if (!color) return;
     const row = document.createElement("div");
     row.className = "ludo-player-row";
-    const chips = msg.tokens[p.id].map((t) => `<span class="ludo-chip ${color}">${tokenLabel(t)}</span>`).join("");
+    const chips = msg.tokens[p.id].map((t) => ludoChipHTML(color, t)).join("");
     row.innerHTML = `<span class="ludo-name"><span class="ludo-color-dot ${color}"></span>${p.nickname}</span> ${chips}`;
     tokensBox.appendChild(row);
   });
