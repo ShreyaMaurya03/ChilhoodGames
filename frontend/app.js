@@ -1031,6 +1031,81 @@ function addTargetButtons(container, targets, onPick) {
   container.appendChild(list);
 }
 
+// Illustrated top-down arena backgrounds (hand-drawn SVG; Recraft isn't
+// configured in this session, so this is the fallback per that tool's rule).
+function hideSeekBackgroundSVG() {
+  const fenceSlats = Array.from({ length: 14 })
+    .map((_, i) => `<rect x="${i * 22}" y="2" width="12" height="10" rx="2"/>`)
+    .join("");
+  return `
+    <svg viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" aria-hidden="true">
+      <defs>
+        <radialGradient id="grassGrad" cx="50%" cy="40%" r="75%">
+          <stop offset="0%" stop-color="#4a9c56"/>
+          <stop offset="100%" stop-color="#2f6e3a"/>
+        </radialGradient>
+      </defs>
+      <rect width="300" height="200" fill="url(#grassGrad)"/>
+      <g fill="#3a7a44" opacity="0.5">
+        <ellipse cx="40" cy="30" rx="26" ry="10"/>
+        <ellipse cx="220" cy="60" rx="30" ry="12"/>
+        <ellipse cx="90" cy="150" rx="34" ry="14"/>
+        <ellipse cx="250" cy="165" rx="24" ry="10"/>
+      </g>
+      <path d="M-10 172 Q90 142 150 172 T 310 152" stroke="#d8c08a" stroke-width="22" fill="none" opacity="0.5"/>
+      <g fill="#8a5a33" opacity="0.9">${fenceSlats}</g>
+      <g>
+        <ellipse cx="262" cy="42" rx="20" ry="16" fill="#2f7a3d"/>
+        <ellipse cx="254" cy="36" rx="12" ry="10" fill="#3d8f4c"/>
+        <ellipse cx="28" cy="112" rx="18" ry="14" fill="#2f7a3d"/>
+        <ellipse cx="22" cy="106" rx="10" ry="9" fill="#3d8f4c"/>
+        <ellipse cx="180" cy="182" rx="22" ry="13" fill="#2f7a3d"/>
+        <ellipse cx="172" cy="176" rx="12" ry="9" fill="#3d8f4c"/>
+      </g>
+      <g>
+        <circle cx="68" cy="52" r="22" fill="#255f31"/>
+        <circle cx="68" cy="52" r="14" fill="#2f7a3d"/>
+        <circle cx="68" cy="52" r="5" fill="#8a5a33"/>
+        <circle cx="238" cy="128" r="20" fill="#255f31"/>
+        <circle cx="238" cy="128" r="13" fill="#2f7a3d"/>
+        <circle cx="238" cy="128" r="4" fill="#8a5a33"/>
+      </g>
+      <g fill="#ffd93d" opacity="0.9">
+        <circle cx="120" cy="90" r="2.5"/><circle cx="128" cy="95" r="2.5"/><circle cx="112" cy="96" r="2.5"/>
+        <circle cx="200" cy="28" r="2.5"/><circle cx="208" cy="24" r="2.5"/>
+      </g>
+    </svg>`;
+}
+
+function freezeTagBackgroundSVG() {
+  const seamRows = Array.from({ length: 6 }).map((_, i) => `<line x1="0" y1="${i * 34}" x2="300" y2="${i * 34}"/>`).join("");
+  const seamCols = Array.from({ length: 9 }).map((_, i) => `<line x1="${i * 34}" y1="0" x2="${i * 34}" y2="200"/>`).join("");
+  return `
+    <svg viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" aria-hidden="true">
+      <defs>
+        <radialGradient id="courtGrad" cx="50%" cy="45%" r="75%">
+          <stop offset="0%" stop-color="#c77b45"/>
+          <stop offset="100%" stop-color="#a7612f"/>
+        </radialGradient>
+      </defs>
+      <rect width="300" height="200" fill="url(#courtGrad)"/>
+      <g stroke="#8f5527" stroke-width="1" opacity="0.4">${seamRows}${seamCols}</g>
+      <circle cx="150" cy="100" r="55" fill="none" stroke="#fff" stroke-width="3" opacity="0.6"/>
+      <circle cx="150" cy="100" r="4" fill="#fff" opacity="0.6"/>
+      <g stroke="#fff" stroke-width="2.5" fill="none" opacity="0.55">
+        <rect x="14" y="14" width="24" height="24"/>
+        <rect x="14" y="38" width="24" height="24"/>
+        <rect x="14" y="62" width="24" height="24"/>
+      </g>
+      <g stroke="#5a5a66" stroke-width="2.5" fill="none" opacity="0.8">
+        <rect x="228" y="148" width="54" height="36" rx="4"/>
+        <line x1="228" y1="148" x2="282" y2="184"/>
+        <line x1="282" y1="148" x2="228" y2="184"/>
+      </g>
+      <rect x="248" y="8" width="38" height="10" rx="2" fill="#6b4226" opacity="0.85"/>
+    </svg>`;
+}
+
 // Hide & Seek
 function renderHideSeek(root, msg) {
   if (!state.arenaInitialized || state.arenaGameType !== "hide_seek") {
@@ -1040,7 +1115,7 @@ function renderHideSeek(root, msg) {
          <span class="countdown" id="arena-timer"></span> &middot;
          You are <strong id="arena-role"></strong></p>
       <p class="muted">Move with WASD, arrow keys, or the pad below.</p>
-      <div class="arena-box" id="arena-box"></div>
+      <div class="arena-box" id="arena-box"><div class="arena-bg">${hideSeekBackgroundSVG()}</div></div>
     `;
     root.appendChild(buildDpad());
     state.arenaInitialized = true;
@@ -1065,7 +1140,7 @@ function renderFreezeTag(root, msg) {
          <span class="countdown" id="arena-timer"></span> left &middot;
          You are <strong id="arena-role"></strong></p>
       <p class="muted">Move with WASD, arrow keys, or the pad below. Unfreeze teammates by touching them!</p>
-      <div class="arena-box" id="arena-box"></div>
+      <div class="arena-box" id="arena-box"><div class="arena-bg">${freezeTagBackgroundSVG()}</div></div>
     `;
     root.appendChild(buildDpad());
     state.arenaInitialized = true;
