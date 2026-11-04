@@ -134,46 +134,54 @@ function buildDpad() {
 const HAIR_PALETTE = ["#3a2a20", "#1c1c1e", "#5c3a21", "#7a4a2b", "#2b2320", "#4a3528"];
 
 function characterSVG(colorHex, { isChaser, caught, hairKey } = {}) {
-  const skin = "#ffd9b0";
+  const skin = "#ffe0c2";
   const hair = HAIR_PALETTE[hashString(hairKey || colorHex) % HAIR_PALETTE.length];
   const hairHighlight = "#8a6a4a";
   const clothColor = caught ? "#8a8d99" : colorHex;
+  const outline = "#2a1810";
 
   const blush = `
-    <ellipse cx="14.3" cy="25.2" rx="2.3" ry="1.3" fill="#ff9aa8" opacity="0.55"/>
-    <ellipse cx="29.7" cy="25.2" rx="2.3" ry="1.3" fill="#ff9aa8" opacity="0.55"/>`;
+    <ellipse cx="14.3" cy="25.4" rx="2.4" ry="1.3" fill="#ff9aa8" opacity="0.6"/>
+    <ellipse cx="29.7" cy="25.4" rx="2.4" ry="1.3" fill="#ff9aa8" opacity="0.6"/>`;
 
   let eyes;
-  let brows;
   let mouth;
   if (caught) {
     eyes = `
-      <path d="M14 21 Q16.5 23.6 19 21" stroke="#2a2a2a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-      <path d="M25 21 Q27.5 23.6 30 21" stroke="#2a2a2a" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
-    brows = "";
-    mouth = `<ellipse cx="22" cy="27.5" rx="1.5" ry="1" fill="#2a2a2a"/>`;
+      <path d="M14 21 Q16.5 23.6 19 21" stroke="${outline}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <path d="M25 21 Q27.5 23.6 30 21" stroke="${outline}" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+    mouth = `<ellipse cx="22" cy="27.5" rx="1.5" ry="1" fill="${outline}"/>`;
   } else {
     eyes = `
-      <ellipse cx="16.3" cy="21.6" rx="3.2" ry="3.7" fill="white"/>
-      <ellipse cx="27.7" cy="21.6" rx="3.2" ry="3.7" fill="white"/>
-      <circle cx="16.6" cy="22.4" r="2.2" fill="#3a2a20"/>
-      <circle cx="28" cy="22.4" r="2.2" fill="#3a2a20"/>
-      <circle cx="17.4" cy="21" r="0.8" fill="white"/>
-      <circle cx="28.8" cy="21" r="0.8" fill="white"/>
-      <circle cx="16" cy="23" r="0.4" fill="white" opacity="0.8"/>
-      <circle cx="27.4" cy="23" r="0.4" fill="white" opacity="0.8"/>
-      <path d="M13.3 19.1 Q16.3 17.3 19.7 18.9" stroke="#241a14" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-      <path d="M24.3 18.9 Q27.7 17.3 30.7 19.1" stroke="#241a14" stroke-width="1.2" fill="none" stroke-linecap="round"/>`;
-    brows = `
-      <path d="M13.3 16 Q16.3 14.3 19.5 15.6" stroke="${hair}" stroke-width="1.3" fill="none" stroke-linecap="round"/>
-      <path d="M24.5 15.6 Q27.7 14.3 30.7 16" stroke="${hair}" stroke-width="1.3" fill="none" stroke-linecap="round"/>`;
-    mouth = `<path d="M19.3 27.3 Q22 29.9 24.7 27.3" stroke="#c2694f" stroke-width="1.3" fill="none" stroke-linecap="round"/>`;
+      <ellipse cx="16.3" cy="21.8" rx="3.4" ry="4" fill="white" stroke="${outline}" stroke-width="0.6"/>
+      <ellipse cx="27.7" cy="21.8" rx="3.4" ry="4" fill="white" stroke="${outline}" stroke-width="0.6"/>
+      <ellipse cx="16.5" cy="22.6" rx="2.5" ry="2.9" fill="#5a4a3a"/>
+      <ellipse cx="27.9" cy="22.6" rx="2.5" ry="2.9" fill="#5a4a3a"/>
+      <circle cx="16.5" cy="23" r="1.3" fill="${outline}"/>
+      <circle cx="27.9" cy="23" r="1.3" fill="${outline}"/>
+      <circle cx="17.3" cy="21" r="0.9" fill="white"/>
+      <circle cx="28.7" cy="21" r="0.9" fill="white"/>
+      <circle cx="15.6" cy="23.8" r="0.5" fill="white" opacity="0.9"/>
+      <circle cx="27" cy="23.8" r="0.5" fill="white" opacity="0.9"/>
+      <path d="M13.3 19 Q16.3 17.2 19.7 18.8" stroke="${outline}" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+      <path d="M24.3 18.8 Q27.7 17.2 30.7 19" stroke="${outline}" stroke-width="1.1" fill="none" stroke-linecap="round"/>`;
+    mouth = `<path d="M19.5 27.4 Q22 29.6 24.5 27.4" stroke="${outline}" stroke-width="1.2" fill="none" stroke-linecap="round"/>`;
   }
 
+  const collar = `
+    <path d="M17 29.5 L22 33 L27 29.5 L27 31.5 L22 35.5 L17 31.5 Z" fill="white" stroke="${outline}" stroke-width="0.6"/>
+    <path d="M22 32 L19.3 33.6 L20.3 35.2 L22 34.2 L23.7 35.2 L24.7 33.6 Z" fill="#d9333f" stroke="${outline}" stroke-width="0.5"/>`;
+
   const chaserMark = isChaser && !caught
-    ? `<path d="M8.5 13.5 L35.5 13.5 L33.5 17.5 L22 16 L10.5 17.5 Z" fill="#e5473b"/>
+    ? `<path d="M8.5 13.5 L35.5 13.5 L33.5 17.5 L22 16 L10.5 17.5 Z" fill="#e5473b" stroke="${outline}" stroke-width="0.6"/>
        <circle cx="22" cy="15.2" r="1.3" fill="#ffd93d"/>
        <path d="M33.5 14.5 L40 11 M33.5 16.5 L40 17.5" stroke="#e5473b" stroke-width="1.5" stroke-linecap="round" fill="none"/>`
+    : "";
+
+  const hairBow = !isChaser && !caught
+    ? `<path d="M5.5 9.5 L11.5 7.3 L11.5 11.7 Z" fill="#d9333f" stroke="${outline}" stroke-width="0.5"/>
+       <path d="M17.5 7.3 L11.5 9.5 L17.5 11.7 Z" fill="#d9333f" stroke="${outline}" stroke-width="0.5"/>
+       <circle cx="11.5" cy="9.5" r="1.4" fill="#b02030" stroke="${outline}" stroke-width="0.4"/>`
     : "";
 
   const iceOverlay = caught
@@ -185,18 +193,19 @@ function characterSVG(colorHex, { isChaser, caught, hairKey } = {}) {
   return `
     <svg viewBox="0 0 44 44" width="100%" height="100%" aria-hidden="true">
       <ellipse cx="22" cy="41" rx="11.5" ry="2" fill="rgba(0,0,0,0.28)"/>
-      <path d="M9.5 43 Q9 30.5 22 30.5 Q35 30.5 34.5 43 Z" fill="${clothColor}"/>
+      <path d="M9.5 43 Q9 30.5 22 30.5 Q35 30.5 34.5 43 Z" fill="${clothColor}" stroke="${outline}" stroke-width="0.7"/>
+      ${collar}
       <rect x="18.7" y="24.5" width="6.6" height="7.5" rx="2.4" fill="${skin}"/>
       <path d="M7.5 22.5 Q6.2 9.5 22 7.8 Q37.8 9.5 36.5 22.5 Q36.3 28.5 32 27.3
-               Q33.2 16 22 15.2 Q10.8 16 12 27.3 Q7.7 28.5 7.5 22.5 Z" fill="${hair}"/>
-      <circle cx="22" cy="20.3" r="11.7" fill="${skin}"/>
+               Q33.2 16 22 15.2 Q10.8 16 12 27.3 Q7.7 28.5 7.5 22.5 Z" fill="${hair}" stroke="${outline}" stroke-width="0.7"/>
+      <circle cx="22" cy="20.3" r="11.7" fill="${skin}" stroke="${outline}" stroke-width="0.7"/>
       ${blush}
-      ${brows}
       ${eyes}
       ${mouth}
-      <path d="M9 18.5 Q9.5 8 22 6.3 Q34.5 8 35 18.5 Q30 10.8 22 11.8 Q14 10.8 9 18.5 Z" fill="${hair}"/>
+      <path d="M9 18.5 Q9.5 8 22 6.3 Q34.5 8 35 18.5 Q30 10.8 22 11.8 Q14 10.8 9 18.5 Z" fill="${hair}" stroke="${outline}" stroke-width="0.7"/>
       <path d="M17 8.3 Q18.3 12.5 16.2 16" stroke="${hairHighlight}" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.65"/>
       <path d="M27.5 8.6 Q28.6 11.5 27.3 14.3" stroke="${hairHighlight}" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.5"/>
+      ${hairBow}
       ${chaserMark}
       ${iceOverlay}
     </svg>`;
